@@ -31,7 +31,7 @@ internal class HttpRootSyntaxNode : HttpSyntaxNode
         AddInternal(separatorNode);
     }
 
-    public Dictionary<string, DeclaredVariable> GetDeclaredVariables()
+    public Dictionary<string, DeclaredVariable> GetDeclaredVariables(IReadOnlyDictionary<string, string>? fallbackValues = null)
     {
 
         var variableAndDeclarationNodes = ChildNodes.OfType<HttpVariableDeclarationAndAssignmentNode>();
@@ -53,22 +53,24 @@ internal class HttpRootSyntaxNode : HttpSyntaxNode
                 {
                     var value = node.ValueNode.TryGetValue(node =>
                     {
-                        if (foundVariableValues.TryGetValue(node.Text, out string? strinValue))
+                        if (foundVariableValues.TryGetValue(node.Text, out string? stringValue))
                         {
-                            return node.CreateBindingSuccess(strinValue);
+                            return node.CreateBindingSuccess(stringValue);
+                        }
+                        else if (fallbackValues is not null && fallbackValues.TryGetValue(node.Text, out stringValue))
+                        {
+                            return node.CreateBindingSuccess(stringValue);
                         }
                         else
                         {
                             return DynamicExpressionUtilites.ResolveExpressionBinding(node, node.Text);
                         }
-
                     });
 
                     if (value is not null && value.Value is not null)
                     {
                         declaredVariables[node.DeclarationNode.VariableName] = new DeclaredVariable(node.DeclarationNode.VariableName, value.Value, value);
                     }
-                    
                 }
             }
         }
